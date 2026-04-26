@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="交易所排班系统，轻松生成排班表">
+    <meta name="keywords" content="排班系统,交易所,排班表,排班工具">
+    <meta name="robots" content="index, follow">
+    
+    <!-- PWA相关配置 -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="排班系统">
+    
+    <!-- 预加载和预连接 -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preload" href="/scheduler.js" as="script">
+    <link rel="preload" href="/icon.png" as="image">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" as="script">
+    
+    <!-- 微信分享相关元标签 -->
+    <meta property="og:title" content="排班系统">
+    <meta property="og:description" content="交易所排班系统，轻松生成排班表">
+    <meta property="og:image" content="/icon.png">
+    <meta property="og:url" content="http://localhost:8000/scheduler.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="排班系统">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:locale" content="zh_CN">
+    
+    <!-- WeChat specific meta tags -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="apple-touch-fullscreen" content="yes">
+    
+    <!-- 微信JSSDK配置 -->
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    
+    <title>排班系统</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-hover: #27ae60;
+            --danger-color: #e74c3c;
+            --danger-hover: #c0392b;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #343a40;
+            --text-light: #6c757d;
+            --border-color: #dee2e6;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background-color);
+            padding: 16px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: var(--card-background);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin: 0 auto;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: var(--transition);
+            font-family: inherit;
+            background-color: #ffffff;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        .person {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+        .person:hover {
+            box-shadow: var(--box-shadow);
+            transform: translateY(-2px);
+        }
+        .person h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .rest-days {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .rest-day {
+            display: flex;
+            align-items: center;
+        }
+        .rest-day input {
+            width: 70px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            transition: var(--transition);
+        }
+        .rest-day input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        button {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: var(--transition);
+        }
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .btn-secondary {
+            background: var(--secondary-color);
+        }
+        .btn-secondary:hover {
+            background: var(--secondary-hover);
+        }
+        .btn-danger {
+            background: var(--danger-color);
+        }
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            overflow-x: auto;
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+        }
+        table {
+            font-size: 12px;
+            min-width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+        th {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        tr {
+            transition: var(--transition);
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        #rule-form {
+            margin-top: 24px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        #rule-form h3 {
+            color: var(--primary-color);
+            font-size: 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary-color);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 成功提示 */
+        .success-message {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #27ae60;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        /* 错误提示 */
+        .error-message {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #e74c3c;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 卡片阴影效果 */
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        /* 按钮组样式 */
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .quick-actions button {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        /* 输入框组样式 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-group input {
+            flex: 1;
+        }
+        
+        /* 响应式表格 */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        /* 标题样式 */
+        .section-title {
+            color: var(--text-color);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        /* 移除按钮样式 */
+        .btn-remove {
+            background-color: var(--danger-color);
+            border-radius: 6px;
+            margin-right: 0;
+            margin-bottom: 0;
+        }
+        
+        .btn-remove:hover {
+            background-color: var(--danger-hover);
+        }
+        
+        /* 小型危险按钮样式 */
+        .btn-danger-small {
+            background: var(--danger-color);
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        
+        .btn-danger-small:hover {
+            background: var(--danger-hover);
+        }
+        
+        /* 移除按钮样式 */
+        .btn-remove {
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+        }
+        
+        .btn-remove:hover {
+            background: var(--danger-hover);
+            transform: scale(1.1);
+        }
+        
+        /* 大型加载动画 */
+        .loading-spinner-large {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(52, 152, 219, 0.3);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        /* 快速操作按钮组 */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .quick-actions button {
+            flex: 1;
+            min-width: 100px;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            .container {
+                padding: 20px;
+                width: 100%;
+                margin: 0;
+            }
+            h1 {
+                font-size: 20px;
+                margin-bottom: 20px;
+            }
+            button {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            .form-group {
+                margin-bottom: 16px;
+            }
+            input[type="text"], input[type="number"], select, textarea {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            table {
+                font-size: 11px;
+                min-width: 700px;
+            }
+            th, td {
+                padding: 6px;
+            }
+            #result {
+                margin-top: 20px;
+                padding: 12px;
+                overflow-x: auto;
+            }
+            .person {
+                padding: 14px;
+                margin-bottom: 14px;
+            }
+            .rest-day input {
+                width: 50px;
+                padding: 4px 6px;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            .quick-actions {
+                flex-direction: column;
+            }
+            .quick-actions button {
+                flex: none;
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .container {
+                padding: 16px;
+            }
+            h1 {
+                font-size: 18px;
+                margin-bottom: 16px;
+            }
+            h2 {
+                font-size: 16px;
+            }
+            h3 {
+                font-size: 14px;
+            }
+            input[type="text"], input[type="number"], select, textarea {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+            .person {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            .rest-days {
+                gap: 8px;
+            }
+            .rest-day input {
+                width: 45px;
+                padding: 3px 5px;
+                font-size: 11px;
+            }
+            table {
+                font-size: 10px;
+                min-width: 600px;
+            }
+            th, td {
+                padding: 4px;
+            }
+            #result {
+                margin-top: 16px;
+                padding: 10px;
+            }
+            #rule-form {
+                padding: 16px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            body {
+                padding: 6px;
+            }
+            .container {
+                padding: 12px;
+            }
+            h1 {
+                font-size: 16px;
+                margin-bottom: 14px;
+            }
+            .form-group label {
+                font-size: 13px;
+                display: block;
+                margin-bottom: 5px;
+            }
+            input[type="text"], input[type="number"], select, textarea {
+                padding: 7px 9px;
+                font-size: 11px;
+                min-height: 40px;
+            }
+            button {
+                padding: 9px 18px;
+                font-size: 12px;
+                min-height: 40px;
+                min-width: 100px;
+            }
+            .person {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .person h3 {
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+            .rest-day input {
+                width: 40px;
+                min-height: 32px;
+            }
+            .rest-day button {
+                min-height: 32px;
+                min-width: 32px;
+            }
+            table {
+                font-size: 9px;
+                min-width: 500px;
+            }
+            th, td {
+                padding: 3px;
+                min-width: 30px;
+            }
+            .quick-actions button {
+                flex: 1;
+                min-width: 80px;
+            }
+            /* 确保触摸目标大小至少为48px */
+            button, input, select, textarea {
+                touch-action: manipulation;
+            }
+            /* 优化移动端滚动 */
+            .table-container {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="login-form" class="container" style="display: none;">
+        <h1>用户登录</h1>
+        <div class="form-group">
+            <label for="username">账号：</label>
+            <input type="text" id="username" placeholder="请输入账号">
+        </div>
+        <div class="form-group">
+            <label for="password">密码：</label>
+            <input type="password" id="password" placeholder="请输入密码">
+        </div>
+        <div class="form-group">
+            <label for="user-type">账户类型：</label>
+            <select id="user-type">
+                <option value="admin">管理员</option>
+                <option value="user">普通用户</option>
+            </select>
+        </div>
+        <button onclick="login()">登录</button>
+        <div id="login-error" style="color: red; margin-top: 10px; display: none;">账号或密码错误</div>
+    </div>
+    
+    <!-- 主界面 -->
+    <div id="main-form" class="container">
+        <h1>排班系统</h1>
+        
+        <div class="form-group">
+            <label for="department">部门：</label>
+            <input type="text" id="department" placeholder="请输入部门名称" value="交易所">
+        </div>
+        
+        <div class="form-group">
+            <label for="person-count">人数：</label>
+            <input type="number" id="person-count" min="1" max="6" value="6">
+            <button onclick="generatePersonForms()">生成表单</button>
+        </div>
+        
+        <div id="person-forms"></div>
+        
+        <button onclick="schedule()">生成排班表</button>
+        <button onclick="generateImage()">生成图片</button>
+        <button onclick="generateExcel()">生成Excel</button>
+        <button onclick="toggleRuleForm()">修改排班规则</button>
+        <button onclick="shareSchedule()">分享排班表</button>
+        
+        <div id="rule-form" style="display: none; margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 4px;">
+            <h3>修改排班规则</h3>
+            <div class="form-group">
+                <label for="rest-days-per-person">每人每月休息天数：</label>
+                <input type="number" id="rest-days-per-person" min="1" max="10" value="4">
+            </div>
+            <div class="form-group admin-only" style="display: block;">
+                <label for="max-people">最大人数：</label>
+                <input type="number" id="max-people" min="1" max="10" value="6">
+            </div>
+            <div class="form-group admin-only" style="display: block;">
+                <label for="shift-types">班次类型：</label>
+                <select id="shift-types">
+                    <option value="2">早班和晚班</option>
+                    <option value="3">早班、中班和晚班</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="custom-rules">自定义规则（可选）：</label>
+                <textarea id="custom-rules" rows="3" placeholder="例如：张三和李四不能同时上早班"></textarea>
+            </div>
+            <button onclick="applyRules()">应用规则并重新排班</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="scheduler.js"></script>
+    <script>
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
